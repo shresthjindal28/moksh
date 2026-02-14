@@ -4,7 +4,7 @@ You have **three** parts:
 
 | App        | Tech           | Where to deploy |
 |-----------|----------------|------------------|
-| **Backend** | Express + Prisma + PostgreSQL | **Render** (API + DB) |
+| **Backend** | Express + Supabase (Postgres) | **Render** |
 | **Main site** | Next.js 16     | **Vercel**       |
 | **Admin**    | Next.js 15     | **Vercel**       |
 
@@ -55,13 +55,17 @@ Deploy **backend first**, then point the frontends at its URL.
 
    | Variable | Example | Required |
    |----------|---------|----------|
+   | `SUPABASE_URL` | `https://YOUR_PROJECT.supabase.co` | Yes |
+   | `SUPABASE_SERVICE_ROLE_KEY` | From Supabase Dashboard → Settings → API | Yes |
    | `JWT_SECRET` | Long random string (e.g. `openssl rand -base64 32`) | Yes |
    | `CORS_ORIGINS` | `https://your-main-site.vercel.app,https://your-admin.vercel.app` | Yes |
    | `CLOUDINARY_CLOUD_NAME` | Your Cloudinary cloud name | No (optional) |
    | `CLOUDINARY_API_KEY` | Your Cloudinary key | No |
    | `CLOUDINARY_API_SECRET` | Your Cloudinary secret | No |
 
-6. **Apply** the Blueprint. Render will create the PostgreSQL database and the `moksh-backend` web service and run migrations.
+   The backend uses **Supabase** as the database (no Prisma). Your Postgres tables must already exist in Supabase (e.g. from an earlier Prisma migrate, or create them to match the schema).
+
+6. **Apply** the Blueprint. Render will create the `moksh-backend` web service (no Render DB needed if you use Supabase).
 
 7. **Note the API URL** (e.g. `https://moksh-backend.onrender.com`). Use it in the next steps.
 
@@ -105,8 +109,10 @@ Deploy **backend first**, then point the frontends at its URL.
 
 ## After first deploy
 
-- **Seed admin user** (if you use a seed script): run it locally once with `DATABASE_URL` set to the **Render** Postgres URL (from the Render dashboard → moksh-db → Connection string), or add a one-off job in Render.
-- **Seed the 3 default categories** (Kurti, Bedsheet, Jewellery): from the `backend` folder run  
-  `DATABASE_URL="postgres://..." npm run seed:categories`  
-  using the **Render** Postgres connection string (same as above). Safe to run multiple times (upserts by slug).
+- **Seed admin user**: from the `backend` folder run  
+  `SUPABASE_URL="https://YOUR_PROJECT.supabase.co" SUPABASE_SERVICE_ROLE_KEY="..." npm run seed`  
+  (use your Supabase project URL and **service_role** key from Dashboard → Settings → API).
+- **Seed the 3 default categories** (Kurti, Bedsheet, Jewellery):  
+  `SUPABASE_URL="..." SUPABASE_SERVICE_ROLE_KEY="..." npm run seed:categories`  
+  Safe to run multiple times.
 - **Free tier**: Render free tier may spin down after inactivity; the first request can be slow until it wakes up.

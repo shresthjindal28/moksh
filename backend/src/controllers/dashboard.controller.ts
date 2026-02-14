@@ -1,24 +1,25 @@
 import { Request, Response, NextFunction } from "express";
-import { prisma } from "../config/db";
+import { supabase, assertOk } from "../config/supabase";
 import { successRes } from "../utils/response";
+import { rowsToCamel } from "../lib/rowMap";
 
 export async function getStats(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const [totalProducts, totalCategories, totalLeads, recentLeads, recentProducts] = await Promise.all([
-      prisma.product.count(),
-      prisma.category.count(),
-      prisma.lead.count(),
-      prisma.lead.findMany({
-        include: { product: { select: { name: true } } },
-        orderBy: { clickedAt: "desc" },
-        take: 10,
-      }),
-      prisma.product.findMany({
-        include: { category: { select: { name: true } } },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }),
+    const [productsCount, categoriesCount, leadsCount, recentLeadsResult, recentProductsResult] = await Promise.all([
+      supabase.from("Product").select("*", { count: "exact", head: true }),
+      supabase.from("Category").select("*", { count: "exact", head: true }),
+      supabase.from("Lead").select("*", { count: "exact", head: true }),
+      supabase.from("Lead").select("*, product:Product(name)").order("clicked_at", { ascending: false }).limit(10),
+      supabase.from("Product").select("*, category:Category(name)").order("created_at", { ascending: false }).limit(5),
     ]);
+
+    const totalProducts = productsCount.count ?? 0;
+    const totalCategories = categoriesCount.count ?? 0;
+    const totalLeads = leadsCount.count ?? 0;
+    const leadsData = assertOk(recentLeadsResult);
+    const productsData = assertOk(recentProductsResult);
+    const recentLeads = rowsToCamel(Array.isArray(leadsData) ? leadsData : []);
+    const recentProducts = rowsToCamel(Array.isArray(productsData) ? productsData : []);
 
     successRes(res, {
       totalProducts,

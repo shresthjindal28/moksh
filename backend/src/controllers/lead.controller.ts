@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { body, validationResult } from "express-validator";
-import { prisma } from "../config/db";
+import { supabase, assertOk } from "../config/supabase";
 import { successRes, errorRes } from "../utils/response";
 
 export const createLeadValidation = [
@@ -16,13 +16,14 @@ export async function createLead(req: Request, res: Response, next: NextFunction
       return;
     }
     const { productId, metadata } = req.body;
-    const lead = await prisma.lead.create({
-      data: {
-        productId: productId || undefined,
-        metadata: metadata ?? undefined,
-      },
-    });
-    successRes(res, { id: lead.id }, 201);
+    const result = await supabase
+      .from("Lead")
+      .insert({ product_id: productId || null, metadata: metadata ?? null })
+      .select("id")
+      .single();
+    const row = assertOk(result);
+    const id = row && typeof row === "object" && "id" in row ? (row as { id: string }).id : null;
+    successRes(res, { id: id ?? "" }, 201);
   } catch (err) {
     next(err);
   }

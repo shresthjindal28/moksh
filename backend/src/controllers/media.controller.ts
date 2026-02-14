@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from "express";
-import { prisma } from "../config/db";
+import { supabase, assertOk } from "../config/supabase";
 import { uploadFromBuffer } from "../services/upload.service";
 import { runUploadValidation } from "../middleware/upload";
 import { successRes, errorRes } from "../utils/response";
 import { notFound } from "../utils/errors";
+import { rowsToCamel } from "../lib/rowMap";
 
 export async function uploadMedia(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -21,23 +22,24 @@ export async function uploadMedia(req: Request, res: Response, next: NextFunctio
     }
     const results = [];
     for (const file of files) {
-      const result = await uploadFromBuffer(
-        file.buffer,
-        file.originalname,
-        file.mimetype,
-        folder
-      );
-      const media = await prisma.media.create({
-        data: {
+      const result = await uploadFromBuffer(file.buffer, file.originalname, file.mimetype, folder);
+      const now = new Date().toISOString();
+      const insertResult = await supabase
+        .from("Media")
+        .insert({
           url: result.url,
-          publicId: result.publicId,
+          public_id: result.publicId ?? null,
           filename: result.filename,
-          mimeType: result.mimeType,
+          mime_type: result.mimeType,
           size: result.size,
-          uploadedById: adminId,
-        },
-      });
-      results.push({ id: media.id, url: result.url, publicId: result.publicId });
+          uploaded_by_id: adminId,
+          created_at: now,
+        })
+        .select("id")
+        .single();
+      const row = assertOk(insertResult);
+      const id = row && typeof row === "object" && "id" in row ? (row as { id: string }).id : null;
+      results.push({ id, url: result.url, publicId: result.publicId });
     }
     successRes(res, results, 201);
   } catch (err) {
@@ -49,15 +51,16 @@ export async function listMedia(req: Request, res: Response, next: NextFunction)
   try {
     const page = Math.max(1, parseInt(String(req.query.page), 10) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit), 10) || 20));
-    const skip = (page - 1) * limit;
-    const [items, total] = await Promise.all([
-      prisma.media.findMany({
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-      }),
-      prisma.media.count(),
-    ]);
+    const from = (page - 1) * limit;
+
+    const result = await supabase
+      .from("Media")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(from, from + limit - 1);
+    const rows = assertOk(result);
+    const total = result.count ?? 0;
+    const items = rowsToCamel(Array.isArray(rows) ? rows : []);
     successRes(res, { items, total, page, limit });
   } catch (err) {
     next(err);
@@ -66,12 +69,13 @@ export async function listMedia(req: Request, res: Response, next: NextFunction)
 
 export async function deleteMedia(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const media = await prisma.media.findUnique({ where: { id: req.params.id } });
-    if (!media) {
+    const r = await supabase.from("Media").select("id").eq("id", req.params.id).maybeSingle();
+    const row = assertOk(r);
+    if (!row) {
       next(notFound("Media not found"));
       return;
     }
-    await prisma.media.delete({ where: { id: req.params.id } });
+    await supabase.from("Media").delete().eq("id", req.params.id);
     successRes(res, { deleted: true });
   } catch (err) {
     next(err);

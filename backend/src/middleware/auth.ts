@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
-import { prisma } from "../config/db";
+import { supabase, assertOk } from "../config/supabase";
 import { unauthorized } from "../utils/errors";
+import { rowToCamel } from "../lib/rowMap";
 
 export interface AuthPayload {
   adminId: string;
@@ -26,10 +27,13 @@ export async function requireAuth(
   const token = header.slice(7);
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as AuthPayload;
-    const admin = await prisma.admin.findUnique({
-      where: { id: decoded.adminId },
-      select: { id: true, email: true, name: true },
-    });
+    const result = await supabase.from("Admin").select("id, email, name").eq("id", decoded.adminId).limit(1).maybeSingle();
+    const data = assertOk(result);
+    if (!data) {
+      next(unauthorized("Admin not found"));
+      return;
+    }
+    const admin = rowToCamel<{ id: string; email: string; name: string }>(data as Record<string, unknown>);
     if (!admin) {
       next(unauthorized("Admin not found"));
       return;

@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { body, param, validationResult } from "express-validator";
-import { prisma } from "../config/db";
+import { supabase, assertOk } from "../config/supabase";
 import { successRes, errorRes } from "../utils/response";
 import { notFound } from "../utils/errors";
+import { rowToCamel, rowsToCamel } from "../lib/rowMap";
 
 export const createProductValidation = [
   body("name").trim().notEmpty().withMessage("Name is required"),
@@ -27,8 +28,6 @@ export const updateProductValidation = [
   body("isActive").optional().isBoolean(),
 ];
 
-const categorySelect = { id: true, name: true, slug: true };
-
 export async function listProducts(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const search = String(req.query.search || "").trim();
@@ -38,56 +37,41 @@ export async function listProducts(req: Request, res: Response, next: NextFuncti
     const maxPrice = req.query.maxPrice != null ? parseFloat(String(req.query.maxPrice)) : undefined;
     const page = Math.max(1, parseInt(String(req.query.page), 10) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit), 10) || 20));
-    const skip = (page - 1) * limit;
+    const from = (page - 1) * limit;
 
-    type Where = {
-      categoryId?: string;
-      isActive?: boolean;
-      price?: { gte?: number; lte?: number };
-      OR?: Array<{ name?: { contains: string; mode: "insensitive" }; description?: { contains: string; mode: "insensitive" } }>;
-    };
-    const where: Where = {};
-    if (category) where.categoryId = category;
-    if (isActive !== undefined) where.isActive = isActive === "true";
-    if (minPrice != null && !Number.isNaN(minPrice)) {
-      where.price = { ...where.price, gte: minPrice };
-    }
-    if (maxPrice != null && !Number.isNaN(maxPrice)) {
-      where.price = { ...where.price, lte: maxPrice };
-    }
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-      ];
-    }
+    let q = supabase
+      .from("Product")
+      .select("*, category:Category(id, name, slug)", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(from, from + limit - 1);
 
-    const [items, total] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        include: { category: { select: categorySelect } },
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-      }),
-      prisma.product.count({ where }),
-    ]);
-    successRes(res, { items, total, page, limit });
+    if (category) q = q.eq("category_id", category);
+    if (isActive !== undefined) q = q.eq("is_active", isActive === "true");
+    if (minPrice != null && !Number.isNaN(minPrice)) q = q.gte("price", minPrice);
+    if (maxPrice != null && !Number.isNaN(maxPrice)) q = q.lte("price", maxPrice);
+    if (search) q = q.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+
+    const result = await q;
+    const rows = assertOk(result);
+    const count = result.count ?? 0;
+    const items = rowsToCamel(Array.isArray(rows) ? rows : []);
+    successRes(res, { items, total: count, page, limit });
   } catch (err) {
     next(err);
   }
 }
 
-/** Single query, O(1) — returns most recently created active product for hero/featured use. */
 export async function getLatestProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const product = await prisma.product.findFirst({
-      where: { isActive: true },
-      orderBy: { createdAt: "desc" },
-      take: 1,
-      include: { category: { select: categorySelect } },
-    });
-    successRes(res, product ?? null);
+    const result = await supabase
+      .from("Product")
+      .select("*, category:Category(id, name, slug)")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const row = assertOk(result);
+    successRes(res, row ? rowToCamel(row as Record<string, unknown>) : null);
   } catch (err) {
     next(err);
   }
@@ -95,15 +79,13 @@ export async function getLatestProduct(req: Request, res: Response, next: NextFu
 
 export async function getProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const product = await prisma.product.findUnique({
-      where: { id: req.params.id },
-      include: { category: { select: categorySelect } },
-    });
-    if (!product) {
+    const result = await supabase.from("Product").select("*, category:Category(id, name, slug)").eq("id", req.params.id).maybeSingle();
+    const row = assertOk(result);
+    if (!row) {
       next(notFound("Product not found"));
       return;
     }
-    successRes(res, product);
+    successRes(res, rowToCamel(row as Record<string, unknown>));
   } catch (err) {
     next(err);
   }
@@ -117,19 +99,24 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
       return;
     }
     const { name, description, price, categoryId, images, whatsappNumber, isActive } = req.body;
-    const product = await prisma.product.create({
-      data: {
+    const now = new Date().toISOString();
+    const result = await supabase
+      .from("Product")
+      .insert({
         name,
-        description: description || undefined,
-        price: price != null ? Number(price) : undefined,
-        categoryId,
+        description: description || null,
+        price: price != null ? Number(price) : null,
+        category_id: categoryId,
         images: Array.isArray(images) ? images : [],
-        whatsappNumber: whatsappNumber || undefined,
-        isActive: isActive !== false,
-      },
-      include: { category: { select: categorySelect } },
-    });
-    successRes(res, product, 201);
+        whatsapp_number: whatsappNumber || null,
+        is_active: isActive !== false,
+        created_at: now,
+        updated_at: now,
+      })
+      .select("*, category:Category(id, name, slug)")
+      .single();
+    const row = assertOk(result);
+    successRes(res, rowToCamel(row as Record<string, unknown>), 201);
   } catch (err) {
     next(err);
   }
@@ -143,55 +130,61 @@ export async function updateProduct(req: Request, res: Response, next: NextFunct
       return;
     }
     const { name, description, price, categoryId, images, whatsappNumber, isActive } = req.body;
-    const product = await prisma.product.update({
-      where: { id: req.params.id },
-      data: {
-        ...(name !== undefined && { name }),
-        ...(description !== undefined && { description }),
-        ...(price !== undefined && { price: Number(price) }),
-        ...(categoryId !== undefined && { categoryId }),
-        ...(images !== undefined && { images: Array.isArray(images) ? images : [] }),
-        ...(whatsappNumber !== undefined && { whatsappNumber: whatsappNumber || undefined }),
-        ...(isActive !== undefined && { isActive }),
-      },
-      include: { category: { select: categorySelect } },
-    });
-    successRes(res, product);
-  } catch (err) {
-    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2025") {
+    const data: Record<string, unknown> = {};
+    if (name !== undefined) data.name = name;
+    if (description !== undefined) data.description = description;
+    if (price !== undefined) data.price = Number(price);
+    if (categoryId !== undefined) data.category_id = categoryId;
+    if (images !== undefined) data.images = Array.isArray(images) ? images : [];
+    if (whatsappNumber !== undefined) data.whatsapp_number = whatsappNumber;
+    if (isActive !== undefined) data.is_active = isActive;
+    data.updated_at = new Date().toISOString();
+
+    const result = await supabase.from("Product").update(data).eq("id", req.params.id).select("*, category:Category(id, name, slug)").single();
+    const row = assertOk(result);
+    if (!row) {
       next(notFound("Product not found"));
       return;
     }
+    successRes(res, rowToCamel(row as Record<string, unknown>));
+  } catch (err) {
     next(err);
   }
 }
 
 export async function deleteProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    await prisma.product.delete({ where: { id: req.params.id } });
-    successRes(res, { deleted: true });
-  } catch (err) {
-    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2025") {
+    const result = await supabase.from("Product").delete().eq("id", req.params.id).select("id").single();
+    if (result.error && result.error.code !== "PGRST116") {
+      throw result.error;
+    }
+    if (!result.data) {
       next(notFound("Product not found"));
       return;
     }
+    successRes(res, { deleted: true });
+  } catch (err) {
     next(err);
   }
 }
 
 export async function toggleVisibility(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const product = await prisma.product.findUnique({ where: { id: req.params.id } });
-    if (!product) {
+    const r = await supabase.from("Product").select("id, is_active").eq("id", req.params.id).maybeSingle();
+    const row = assertOk(r);
+    if (!row) {
       next(notFound("Product not found"));
       return;
     }
-    const updated = await prisma.product.update({
-      where: { id: req.params.id },
-      data: { isActive: !product.isActive },
-      include: { category: { select: categorySelect } },
-    });
-    successRes(res, updated);
+    const current = (row as { is_active: boolean }).is_active;
+    const result = await supabase
+      .from("Product")
+      .update({ is_active: !current })
+      .eq("id", req.params.id)
+      .select("*, category:Category(id, name, slug)")
+      .single();
+    const updated = assertOk(result);
+    successRes(res, updated ? rowToCamel(updated as Record<string, unknown>) : null);
   } catch (err) {
     next(err);
   }

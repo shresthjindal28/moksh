@@ -10,11 +10,12 @@ import { errorHandler } from "./src/middleware/errorHandler";
 
 async function main() {
   // Validate env (throws if required vars missing)
-  void env.DATABASE_URL;
+  void env.SUPABASE_URL;
+  void env.SUPABASE_SERVICE_ROLE_KEY;
   void env.JWT_SECRET;
 
   await connectDb();
-  console.log("PostgreSQL connected");
+  console.log("Supabase connected");
 
   const app = express();
   app.use(helmet());

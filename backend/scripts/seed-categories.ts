@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { prisma } from "../src/config/db";
+import { supabase, assertOk } from "../src/config/supabase";
 
 const CATEGORIES = [
   { name: "Kurti", slug: "kurti", order: 0 },
@@ -10,22 +10,21 @@ const CATEGORIES = [
 ];
 
 async function seed() {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    console.error("DATABASE_URL required");
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required");
     process.exit(1);
   }
-  await prisma.$connect();
   for (const cat of CATEGORIES) {
-    await prisma.category.upsert({
-      where: { slug: cat.slug },
-      create: cat,
-      update: {},
-    });
-    console.log("Category OK:", cat.slug);
+    const existing = await supabase.from("Category").select("id").eq("slug", cat.slug).maybeSingle();
+    if (assertOk(existing)) {
+      console.log("Category exists:", cat.slug);
+    } else {
+      const now = new Date().toISOString();
+      await supabase.from("Category").insert({ ...cat, created_at: now, updated_at: now });
+      console.log("Category OK:", cat.slug);
+    }
   }
   console.log("Done. Categories:", CATEGORIES.map((c) => c.slug).join(", "));
-  await prisma.$disconnect();
   process.exit(0);
 }
 
