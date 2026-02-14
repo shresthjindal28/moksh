@@ -66,13 +66,13 @@ export function HeroSection() {
 
   const imageVariants = {
     enter: (dir: number) => ({ opacity: 0, scale: 1.15, x: dir > 0 ? 60 : -60 }),
-    center: { opacity: 1, scale: 1.05, x: 0, transition: { duration: 1, ease: [0.33, 1, 0.68, 1] } },
+    center: { opacity: 1, scale: 1.05, x: 0, transition: { duration: 1, ease: [0.33, 1, 0.68, 1] as [number, number, number, number] } },
     exit: (dir: number) => ({ opacity: 0, scale: 1, x: dir > 0 ? -60 : 60, transition: { duration: 0.6 } }),
   };
 
   const textVariants = {
     enter: { opacity: 0, y: 30 },
-    center: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" } },
+    center: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" as const } },
     exit: { opacity: 0, y: -20, transition: { duration: 0.3 } },
   };
 
