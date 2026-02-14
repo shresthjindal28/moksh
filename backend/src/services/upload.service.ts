@@ -59,7 +59,7 @@ export async function uploadFromBuffer(
           });
         }
       );
-      uploadStream.end(buffer);
+      (uploadStream as NodeJS.WritableStream).end(buffer);
     });
   }
 

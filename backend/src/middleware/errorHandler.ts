@@ -10,10 +10,11 @@ export function errorHandler(
   _next: NextFunction
 ): void {
   if (err instanceof multer.MulterError) {
+    const code = (err as multer.MulterError).code;
     const message =
-      err.code === "LIMIT_FILE_SIZE"
+      code === "LIMIT_FILE_SIZE"
         ? "File too large. Max 10MB per file."
-        : err.code === "LIMIT_FILE_COUNT"
+        : code === "LIMIT_FILE_COUNT"
           ? "Too many files. Max 10 per request."
           : err.message;
     res.status(400).json({ success: false, error: { message, code: "UPLOAD_ERROR" } });
