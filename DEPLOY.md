@@ -60,7 +60,7 @@ npm install && npm run build
 ## 2. Main site (Vercel)
 
 1. Go to **https://vercel.com**, sign in, **Add New Project**, import your repo.
-2. Set **Root Directory** to `main site`.
+2. Set **Root Directory** to `main-site`.
 3. **Environment variable**: `NEXT_PUBLIC_API_URL` = `https://moksh-backend.onrender.com`
 4. Deploy. Copy the URL (e.g. `https://your-main-site.vercel.app`).
 
@@ -107,7 +107,7 @@ SUPABASE_URL="https://xxxx.supabase.co" SUPABASE_SERVICE_ROLE_KEY="..." npm run 
 - [ ] Render: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `CORS_ORIGINS` set.
 - [ ] Render: Build command is `npm install && npm run build` (no Prisma).
 - [ ] Backend URL noted (e.g. `https://moksh-backend.onrender.com`).
-- [ ] Main site on Vercel: root = `main site`, `NEXT_PUBLIC_API_URL` = backend URL.
+- [ ] Main site on Vercel: root = `main-site`, `NEXT_PUBLIC_API_URL` = backend URL.
 - [ ] Admin on Vercel: root = `admin`, `NEXT_PUBLIC_API_URL` = backend URL.
 - [ ] `CORS_ORIGINS` on Render includes both Vercel URLs.
 - [ ] Seeded admin user and categories.
