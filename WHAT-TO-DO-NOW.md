@@ -10,6 +10,8 @@ Your backend is live at **https://moksh-backend.onrender.com**. Follow these ste
 - **Connection string:** On that database page, use **Internal Database URL** (for other Render services) or **External Database URL** (for your laptop). Use this as `DATABASE_URL` when running seed scripts locally.
 - **GUI client (optional):** Use [TablePlus](https://tableplus.com), [pgAdmin](https://www.pgadmin.org), or [DBeaver](https://dbeaver.io). Create a new Postgres connection and paste the **External** URL (with username/password from the URL). You can then browse tables (e.g. `Category`, `Product`, `Admin`).
 
+**If the backend was failing with “self-signed certificate in certificate chain”:** The codebase was updated so the app accepts Render’s TLS certificate. Commit, push, and let Render redeploy the backend so the fix is live.
+
 ---
 
 ## 1. Set backend environment variables (Render)

@@ -5,14 +5,17 @@ import { PrismaClient } from "@prisma/client";
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error("DATABASE_URL is required");
 
-// Render (and similar) Postgres uses a self-signed TLS cert; allow it so the connection succeeds
-const poolConfig =
-  connectionString.includes("render.com") || process.env.NODE_ENV === "production"
-    ? {
-        connectionString,
-        ssl: { rejectUnauthorized: false },
-      }
-    : { connectionString };
+// Supabase, Render, and other cloud Postgres often use TLS certs that Node rejects by default.
+// Allow the connection when SSL is requested (sslmode=require etc.) or when using known hosts.
+const needsInsecureSSL =
+  /sslmode=(require|prefer|verify-ca|verify-full)/i.test(connectionString) ||
+  connectionString.includes("render.com") ||
+  connectionString.includes("supabase.com") ||
+  process.env.NODE_ENV === "production";
+
+const poolConfig = needsInsecureSSL
+  ? { connectionString, ssl: { rejectUnauthorized: false } }
+  : { connectionString };
 
 const adapter = new PrismaPg(poolConfig);
 
