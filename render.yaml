@@ -1,0 +1,35 @@
+# Moksh deployment: API + PostgreSQL on Render
+# Deploy: push to GitHub/GitLab/Bitbucket, then use Dashboard link in DEPLOY.md
+
+databases:
+  - name: moksh-db
+    databaseName: moksh
+    plan: free
+
+services:
+  - type: web
+    name: moksh-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci && npx prisma generate && npm run build
+    preDeployCommand: npx prisma migrate deploy
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: moksh-db
+          property: connectionString
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      # Optional: Cloudinary (leave unset to use local uploads)
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
