@@ -45,7 +45,23 @@ export async function listProducts(req: Request, res: Response, next: NextFuncti
       .order("created_at", { ascending: false })
       .range(from, from + limit - 1);
 
-    if (category) q = q.eq("category_id", category);
+    if (category) {
+      // Support both UUID (category_id) and slug
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(category);
+      if (isUUID) {
+        q = q.eq("category_id", category);
+      } else {
+        // Look up category by slug first
+        const { data: cat } = await supabase.from("Category").select("id").eq("slug", category).maybeSingle();
+        if (cat) {
+          q = q.eq("category_id", cat.id);
+        } else {
+          // No matching category → return empty
+          successRes(res, { items: [], total: 0, page, limit });
+          return;
+        }
+      }
+    }
     if (isActive !== undefined) q = q.eq("is_active", isActive === "true");
     if (minPrice != null && !Number.isNaN(minPrice)) q = q.gte("price", minPrice);
     if (maxPrice != null && !Number.isNaN(maxPrice)) q = q.lte("price", maxPrice);

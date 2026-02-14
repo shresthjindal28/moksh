@@ -39,8 +39,9 @@ export function TrendingProducts() {
               product.images?.length > 0
                 ? fullImageUrl(product.images[0])
                 : PLACEHOLDER_IMAGE;
+            const imageUrl = product.images?.[0] ? fullImageUrl(product.images[0]) : undefined;
             const whatsappLink = settings
-              ? buildWhatsAppLink(product.name, settings, product.whatsappNumber)
+              ? buildWhatsAppLink(product.name, settings, product.whatsappNumber, imageUrl)
               : `https://wa.me/0?text=${encodeURIComponent("Hi, I'm interested in " + product.name)}`;
             return (
               <div

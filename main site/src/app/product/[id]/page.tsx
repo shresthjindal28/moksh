@@ -24,7 +24,8 @@ export default async function ProductDetailsPage({ params }: PageProps) {
 
     const images = product.images?.length ? product.images : [""];
     const categoryName = typeof product.category === "object" && product.category?.name ? product.category.name : "";
-    const whatsappLink = buildWhatsAppLink(product.name, settings, product.whatsappNumber);
+    const mainImage = product.images?.[0] ? fullImageUrl(product.images[0]) : undefined;
+    const whatsappLink = buildWhatsAppLink(product.name, settings, product.whatsappNumber, mainImage);
 
     const related = allProducts.items.filter((p) => p.id !== id).slice(0, 4);
 
@@ -104,7 +105,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
                                         category={p.category?.name ?? ""}
                                         price={p.price}
                                         image={p.images?.[0] ? fullImageUrl(p.images[0]) : ""}
-                                        whatsappLink={buildWhatsAppLink(p.name, settings, p.whatsappNumber)}
+                                        whatsappLink={buildWhatsAppLink(p.name, settings, p.whatsappNumber, p.images?.[0] ? fullImageUrl(p.images[0]) : undefined)}
                                     />
                                 </div>
                             ))}

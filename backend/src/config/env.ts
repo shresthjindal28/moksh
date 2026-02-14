@@ -21,5 +21,7 @@ export const env = {
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || "",
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || "",
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || "",
-  CORS_ORIGINS: (process.env.CORS_ORIGINS ?? "").split(",").map((o) => o.trim()).filter(Boolean),
+  CORS_ORIGINS: process.env.CORS_ORIGINS?.trim() === "*"
+    ? true as const                          // reflect any Origin → works with credentials
+    : (process.env.CORS_ORIGINS ?? "").split(",").map((o) => o.trim()).filter(Boolean),
 } as const;

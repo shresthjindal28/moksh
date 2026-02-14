@@ -74,15 +74,15 @@ export function FilterSidebar({ categories }: FilterSidebarProps) {
               <li key={cat.id}>
                 <button
                   onClick={() =>
-                    updateFilters({ category: currentCategory === cat.id ? null : cat.id })
+                    updateFilters({ category: currentCategory === cat.slug ? null : cat.slug })
                   }
                   className={`text-left w-full font-light tracking-wide group flex items-center transition-colors ${
-                    currentCategory === cat.id ? "text-gold" : "text-muted hover:text-white"
+                    currentCategory === cat.slug ? "text-gold" : "text-muted hover:text-white"
                   }`}
                 >
                   <span
                     className={`w-0 h-px mr-0 transition-all duration-300 ${
-                      currentCategory === cat.id
+                      currentCategory === cat.slug
                         ? "w-2 mr-2 bg-gold"
                         : "group-hover:w-2 group-hover:mr-2 bg-gold"
                     }`}

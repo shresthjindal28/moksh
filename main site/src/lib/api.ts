@@ -35,17 +35,21 @@ export async function getProducts(params?: {
   minPrice?: number;
   maxPrice?: number;
 }): Promise<{ items: ProductListItem[]; total: number }> {
-  const search = new URLSearchParams();
-  if (params?.isActive !== false) search.set("isActive", "true");
-  if (params?.category) search.set("category", params.category);
-  if (params?.page) search.set("page", String(params.page));
-  if (params?.limit) search.set("limit", String(params.limit ?? 20));
-  if (params?.minPrice != null) search.set("minPrice", String(params.minPrice));
-  if (params?.maxPrice != null) search.set("maxPrice", String(params.maxPrice));
-  const res = await fetch(`${BASE}/products?${search}`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to fetch products");
-  const json = await res.json();
-  return json.data;
+  try {
+    const search = new URLSearchParams();
+    if (params?.isActive !== false) search.set("isActive", "true");
+    if (params?.category) search.set("category", params.category);
+    if (params?.page) search.set("page", String(params.page));
+    if (params?.limit) search.set("limit", String(params.limit ?? 20));
+    if (params?.minPrice != null) search.set("minPrice", String(params.minPrice));
+    if (params?.maxPrice != null) search.set("maxPrice", String(params.maxPrice));
+    const res = await fetch(`${BASE}/products?${search}`, { cache: "no-store" });
+    if (!res.ok) return { items: [], total: 0 };
+    const json = await res.json();
+    return json.data;
+  } catch {
+    return { items: [], total: 0 };
+  }
 }
 
 /** Fetches the single latest (most recently created) active product — for hero section. Returns null if backend is down or errors. */
@@ -71,10 +75,14 @@ export async function getLatestProducts(limit: number = 4): Promise<ProductListI
 }
 
 export async function getProduct(id: string): Promise<ProductDetail | null> {
-  const res = await fetch(`${BASE}/products/${id}`, { cache: "no-store" });
-  if (!res.ok) return null;
-  const json = await res.json();
-  return json.data;
+  try {
+    const res = await fetch(`${BASE}/products/${id}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.data;
+  } catch {
+    return null;
+  }
 }
 
 export async function getCategories(): Promise<Category[]> {
@@ -89,20 +97,29 @@ export async function getCategories(): Promise<Category[]> {
 }
 
 export async function getPublicSettings(): Promise<PublicSettings> {
-  const res = await fetch(`${BASE}/settings/public`, { cache: "no-store" });
-  if (!res.ok) return { defaultWhatsappNumber: "", whatsappMessageTemplate: "Hi, I'm interested in {productName}" };
-  const json = await res.json();
-  return json.data;
+  try {
+    const res = await fetch(`${BASE}/settings/public`, { cache: "no-store" });
+    if (!res.ok) return { defaultWhatsappNumber: "", whatsappMessageTemplate: "Hi, I'm interested in {productName}" };
+    const json = await res.json();
+    return json.data;
+  } catch {
+    return { defaultWhatsappNumber: "", whatsappMessageTemplate: "Hi, I'm interested in {productName}" };
+  }
 }
 
 export function buildWhatsAppLink(
   productName: string,
   settings: PublicSettings,
-  productWhatsappNumber?: string
+  productWhatsappNumber?: string,
+  productImageUrl?: string
 ): string {
   const num = (productWhatsappNumber || settings.defaultWhatsappNumber || "").replace(/\D/g, "");
   const template = settings.whatsappMessageTemplate || "Hi, I'm interested in {productName}";
-  const text = encodeURIComponent(template.replace(/{productName}/g, productName));
+  let message = template.replace(/{productName}/g, productName);
+  if (productImageUrl) {
+    message += `\n\n${productImageUrl}`;
+  }
+  const text = encodeURIComponent(message);
   return `https://wa.me/${num || "0"}?text=${text}`;
 }
 
