@@ -4,6 +4,14 @@ Your backend is live at **https://moksh-backend.onrender.com**. Follow these ste
 
 ---
 
+## How to see / use the database (Render)
+
+- **In the dashboard:** Go to **https://dashboard.render.com** → **Databases** → click your Postgres (e.g. **moksh-db**). You’ll see connection info, metrics, and a **Shell** tab to run SQL.
+- **Connection string:** On that database page, use **Internal Database URL** (for other Render services) or **External Database URL** (for your laptop). Use this as `DATABASE_URL` when running seed scripts locally.
+- **GUI client (optional):** Use [TablePlus](https://tableplus.com), [pgAdmin](https://www.pgadmin.org), or [DBeaver](https://dbeaver.io). Create a new Postgres connection and paste the **External** URL (with username/password from the URL). You can then browse tables (e.g. `Category`, `Product`, `Admin`).
+
+---
+
 ## 1. Set backend environment variables (Render)
 
 1. Go to **https://dashboard.render.com** and open your **moksh-backend** (or moksh-db) service.
