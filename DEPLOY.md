@@ -45,11 +45,9 @@ Deploy **backend first**, then point the frontends at its URL.
    git push origin main
    ```
 
-3. **Open the Blueprint** (replace with your repo URL):
+3. **Open the Blueprint** for this repo:
 
-   ```
-   https://dashboard.render.com/blueprint/new?repo=https://github.com/YOUR_USER/YOUR_REPO
-   ```
+   **https://dashboard.render.com/blueprint/new?repo=https://github.com/shresthjindal28/moksh**
 
 4. **Connect** your Git provider if asked and choose the repo.
 
