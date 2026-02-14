@@ -1,18 +1,12 @@
-# Moksh deployment: API + PostgreSQL on Render
-# Deploy: push to GitHub/GitLab/Bitbucket, then use Dashboard link in DEPLOY.md
-
-databases:
-  - name: moksh-db
-    databaseName: moksh
-    plan: free
+# Moksh deployment: Express API on Render (uses Supabase for database)
 
 services:
   - type: web
-    name: moksh-api
+    name: moksh-backend
     runtime: node
     plan: free
     rootDir: backend
-    buildCommand: npm ci && npm run build && test -f dist/server.js || (echo "Build failed: dist/server.js not found" && exit 1)
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV

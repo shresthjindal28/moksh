@@ -2,117 +2,112 @@
 
 You have **three** parts:
 
-| App        | Tech           | Where to deploy |
-|-----------|----------------|------------------|
-| **Backend** | Express + Supabase (Postgres) | **Render** |
-| **Main site** | Next.js 16     | **Vercel**       |
-| **Admin**    | Next.js 15     | **Vercel**       |
+| App         | Tech                         | Where to deploy |
+|------------|------------------------------|-----------------|
+| **Backend** | Express + Supabase (Postgres) | **Render**      |
+| **Main site** | Next.js 16                 | **Vercel**      |
+| **Admin**   | Next.js 15                   | **Vercel**      |
 
 Deploy **backend first**, then point the frontends at its URL.
 
 ---
 
-## 1. Backend + database (Render)
+## 0. Create the database tables (Supabase – one time)
 
-### Prerequisites
+1. Open your **Supabase Dashboard** → your project → **SQL Editor**.
+2. Paste the contents of `backend/scripts/create-tables.sql` and click **Run**.
+3. This creates: `Admin`, `Category`, `Product`, `Media`, `Settings`, `Lead`.
+4. Go to **Project Settings → API** and copy:
+   - **Project URL** (e.g. `https://xxxx.supabase.co`) → this is `SUPABASE_URL`
+   - **service_role** key (under "Project API keys") → this is `SUPABASE_SERVICE_ROLE_KEY`
 
-- A **Git** repo (GitHub, GitLab, or Bitbucket) with this project pushed.
-- If you don’t have a repo yet:
+---
 
-  ```bash
-  cd "/Users/shresthjindal/Desktop/untitled folder"
-  git init
-  git add .
-  git commit -m "Initial commit"
-  # Create a repo on GitHub/GitLab/Bitbucket, then:
-  git remote add origin https://github.com/YOUR_USER/YOUR_REPO.git
-  git push -u origin main
-  ```
+## 1. Backend (Render)
+
+### Build command
+
+Set this in the Render dashboard → your service → **Settings** → **Build & Deploy** → **Build Command**:
+
+```
+npm install && npm run build
+```
+
+(Do **not** include `npx prisma generate`; the project no longer uses Prisma.)
+
+### Environment variables (Render)
+
+| Variable | Example | Required |
+|----------|---------|----------|
+| `SUPABASE_URL` | `https://xxxx.supabase.co` | Yes |
+| `SUPABASE_SERVICE_ROLE_KEY` | From Supabase Dashboard → Settings → API | Yes |
+| `JWT_SECRET` | Long random string (e.g. `openssl rand -base64 32`) | Yes |
+| `CORS_ORIGINS` | `https://your-main-site.vercel.app,https://your-admin.vercel.app` | Yes |
+| `CLOUDINARY_CLOUD_NAME` | Your Cloudinary cloud name | No |
+| `CLOUDINARY_API_KEY` | Your Cloudinary key | No |
+| `CLOUDINARY_API_SECRET` | Your Cloudinary secret | No |
 
 ### Deploy
 
-1. **Validate** (optional; needs [Render CLI](https://render.com/docs/cli)):
-
-   ```bash
-   render blueprints validate
-   ```
-
-2. **Commit and push** `render.yaml` if you haven’t already:
-
-   ```bash
-   git add render.yaml
-   git commit -m "Add Render deployment"
-   git push origin main
-   ```
-
-3. **Open the Blueprint** for this repo:
-
-   **https://dashboard.render.com/blueprint/new?repo=https://github.com/shresthjindal28/moksh**
-
-4. **Connect** your Git provider if asked and choose the repo.
-
-5. **Set secret env vars** in the Render dashboard for `moksh-backend`:
-
-   | Variable | Example | Required |
-   |----------|---------|----------|
-   | `SUPABASE_URL` | `https://YOUR_PROJECT.supabase.co` | Yes |
-   | `SUPABASE_SERVICE_ROLE_KEY` | From Supabase Dashboard → Settings → API | Yes |
-   | `JWT_SECRET` | Long random string (e.g. `openssl rand -base64 32`) | Yes |
-   | `CORS_ORIGINS` | `https://your-main-site.vercel.app,https://your-admin.vercel.app` | Yes |
-   | `CLOUDINARY_CLOUD_NAME` | Your Cloudinary cloud name | No (optional) |
-   | `CLOUDINARY_API_KEY` | Your Cloudinary key | No |
-   | `CLOUDINARY_API_SECRET` | Your Cloudinary secret | No |
-
-   The backend uses **Supabase** as the database (no Prisma). Your Postgres tables must already exist in Supabase (e.g. from an earlier Prisma migrate, or create them to match the schema).
-
-6. **Apply** the Blueprint. Render will create the `moksh-backend` web service (no Render DB needed if you use Supabase).
-
-7. **Note the API URL** (e.g. `https://moksh-backend.onrender.com`). Use it in the next steps.
+1. Push your code to GitHub.
+2. In Render, create a **Web Service** from the repo (or use the existing one).
+3. Set **Root Directory** to `backend`.
+4. Set the **Build Command** and **Environment Variables** above.
+5. Deploy. Your API URL is e.g. `https://moksh-backend.onrender.com`.
 
 ---
 
 ## 2. Main site (Vercel)
 
-1. Go to [vercel.com](https://vercel.com) and sign in (e.g. with GitHub).
-2. **Add New Project** → import the same repo.
-3. Set **Root Directory** to `main site`.
-4. **Environment variable** (Production and Preview):
-
-   - `NEXT_PUBLIC_API_URL` = your Render API URL (e.g. `https://moksh-backend.onrender.com`)
-
-5. Deploy. After deploy, add this main site URL to the backend’s `CORS_ORIGINS` on Render (e.g. `https://your-project.vercel.app`).
+1. Go to **https://vercel.com**, sign in, **Add New Project**, import your repo.
+2. Set **Root Directory** to `main site`.
+3. **Environment variable**: `NEXT_PUBLIC_API_URL` = `https://moksh-backend.onrender.com`
+4. Deploy. Copy the URL (e.g. `https://your-main-site.vercel.app`).
 
 ---
 
 ## 3. Admin (Vercel)
 
-1. **Add another project** in Vercel for the same repo (or a separate repo if admin lives elsewhere).
+1. **Add New Project** in Vercel, import same repo.
 2. Set **Root Directory** to `admin`.
-3. **Environment variable**:
+3. **Environment variable**: `NEXT_PUBLIC_API_URL` = `https://moksh-backend.onrender.com`
+4. Deploy. Copy the URL (e.g. `https://your-admin.vercel.app`).
 
-   - `NEXT_PUBLIC_API_URL` = same Render API URL (e.g. `https://moksh-backend.onrender.com`)
+---
 
-4. Deploy. Add the admin URL to `CORS_ORIGINS` on Render as well.
+## 4. Update CORS on Render
+
+After both Vercel deploys, go back to **Render** → your backend → **Environment**:
+
+Set `CORS_ORIGINS` = `https://your-main-site.vercel.app,https://your-admin.vercel.app`
+
+Save. Render will redeploy automatically.
+
+---
+
+## 5. Seed data (one time, from your laptop)
+
+From the `backend` folder:
+
+```bash
+# Seed admin user
+SUPABASE_URL="https://xxxx.supabase.co" SUPABASE_SERVICE_ROLE_KEY="..." npm run seed
+
+# Seed 3 categories (Kurti, Bedsheet, Jewellery)
+SUPABASE_URL="https://xxxx.supabase.co" SUPABASE_SERVICE_ROLE_KEY="..." npm run seed:categories
+```
+
+(Or set these in your local `.env` and just run `npm run seed` / `npm run seed:categories`.)
 
 ---
 
 ## Quick checklist
 
-- [ ] Repo created and code (including `render.yaml`) pushed.
-- [ ] Render Blueprint applied; `JWT_SECRET` and `CORS_ORIGINS` set.
+- [ ] Tables created in Supabase (ran `create-tables.sql`).
+- [ ] Render: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `CORS_ORIGINS` set.
+- [ ] Render: Build command is `npm install && npm run build` (no Prisma).
 - [ ] Backend URL noted (e.g. `https://moksh-backend.onrender.com`).
-- [ ] Main site on Vercel with `NEXT_PUBLIC_API_URL` = backend URL; root = `main site`.
-- [ ] Admin on Vercel with `NEXT_PUBLIC_API_URL` = backend URL; root = `admin`.
-- [ ] Both frontend URLs added to backend `CORS_ORIGINS` on Render.
-
----
-
-## After first deploy
-
-- **Seed admin user**: from the `backend` folder run  
-  `SUPABASE_URL="https://YOUR_PROJECT.supabase.co" SUPABASE_SERVICE_ROLE_KEY="..." npm run seed`  
-  (use your Supabase project URL and **service_role** key from Dashboard → Settings → API).
-- **Seed the 3 default categories** (Kurti, Bedsheet, Jewellery):  
-  `SUPABASE_URL="..." SUPABASE_SERVICE_ROLE_KEY="..." npm run seed:categories`  
-  Safe to run multiple times.
-- **Free tier**: Render free tier may spin down after inactivity; the first request can be slow until it wakes up.
+- [ ] Main site on Vercel: root = `main site`, `NEXT_PUBLIC_API_URL` = backend URL.
+- [ ] Admin on Vercel: root = `admin`, `NEXT_PUBLIC_API_URL` = backend URL.
+- [ ] `CORS_ORIGINS` on Render includes both Vercel URLs.
+- [ ] Seeded admin user and categories.
