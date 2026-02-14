@@ -1,0 +1,332 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Moksh API",
+    "version": "1.0.0",
+    "description": "Backend API for MOKSH admin panel and main site. Auth uses JWT (Bearer token from POST /api/auth/login)."
+  },
+  "servers": [{ "url": "/api", "description": "API base" }],
+  "tags": [
+    { "name": "Health", "description": "Service health" },
+    { "name": "Auth", "description": "Admin login and session" },
+    { "name": "Products", "description": "Product CRUD and visibility" },
+    { "name": "Categories", "description": "Category CRUD" },
+    { "name": "Media", "description": "Image upload and media library" },
+    { "name": "Settings", "description": "App and WhatsApp settings" },
+    { "name": "Dashboard", "description": "Admin dashboard stats" },
+    { "name": "Leads", "description": "Enquiry / lead capture" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "description": "Returns service health. No auth required.",
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Admin login",
+        "description": "Authenticate with email and password. Returns JWT and admin info. Use the token in Authorization: Bearer <token> for protected routes.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": { "email": { "type": "string", "format": "email" }, "password": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Success - returns token and admin" }, "401": { "description": "Invalid email or password" } }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Current admin",
+        "description": "Returns the authenticated admin (requires Bearer token).",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Admin profile" }, "401": { "description": "Missing or invalid token" } }
+      }
+    },
+    "/products": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List products",
+        "description": "Paginated list with optional filters: category, search, active (true/false). Public.",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "category", "in": "query", "description": "Category ID filter", "schema": { "type": "string" } },
+          { "name": "search", "in": "query", "description": "Search by name", "schema": { "type": "string" } },
+          { "name": "active", "in": "query", "description": "Filter by visibility", "schema": { "type": "boolean" } }
+        ],
+        "responses": { "200": { "description": "Paginated products" } }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create product",
+        "description": "Create a new product. Requires auth.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "categoryId"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "price": { "type": "number" },
+                  "categoryId": { "type": "string" },
+                  "images": { "type": "array", "items": { "type": "string" } },
+                  "whatsappNumber": { "type": "string" },
+                  "isActive": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Product created" }, "400": { "description": "Validation error" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/products/{id}": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product by ID",
+        "description": "Single product with category. Public.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Product" }, "404": { "description": "Not found" } }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update product",
+        "description": "Update product by ID. Requires auth.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "price": { "type": "number" },
+                  "categoryId": { "type": "string" },
+                  "images": { "type": "array", "items": { "type": "string" } },
+                  "whatsappNumber": { "type": "string" },
+                  "isActive": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Updated product" }, "400": { "description": "Validation error" }, "401": { "description": "Unauthorized" }, "404": { "description": "Not found" } }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete product",
+        "description": "Delete product by ID. Requires auth.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Deleted" }, "401": { "description": "Unauthorized" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/products/{id}/visibility": {
+      "patch": {
+        "tags": ["Products"],
+        "summary": "Toggle product visibility",
+        "description": "Toggle isActive (visible on site). Requires auth.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "isActive": { "type": "boolean" } } }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Updated" }, "401": { "description": "Unauthorized" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/categories": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "List categories",
+        "description": "All categories ordered by order and name. Public.",
+        "responses": { "200": { "description": "List of categories" } }
+      },
+      "post": {
+        "tags": ["Categories"],
+        "summary": "Create category",
+        "description": "Create a new category. Requires auth.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": { "name": { "type": "string" }, "description": { "type": "string" }, "order": { "type": "integer" } }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Category created" }, "400": { "description": "Validation error" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/categories/{id}": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "Get category by ID",
+        "description": "Single category. Public.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Category" }, "404": { "description": "Not found" } }
+      },
+      "put": {
+        "tags": ["Categories"],
+        "summary": "Update category",
+        "description": "Update category by ID. Requires auth.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "name": { "type": "string" }, "description": { "type": "string" }, "order": { "type": "integer" } }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Updated category" }, "400": { "description": "Validation error" }, "401": { "description": "Unauthorized" }, "404": { "description": "Not found" } }
+      },
+      "delete": {
+        "tags": ["Categories"],
+        "summary": "Delete category",
+        "description": "Delete category. Fails if products use it. Requires auth.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Deleted" }, "400": { "description": "Category in use" }, "401": { "description": "Unauthorized" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/media": {
+      "get": {
+        "tags": ["Media"],
+        "summary": "List media",
+        "description": "Paginated media library. Requires auth.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Items and total" }, "401": { "description": "Unauthorized" } }
+      },
+      "post": {
+        "tags": ["Media"],
+        "summary": "Upload images",
+        "description": "Upload one or more images (multipart/form-data, field name: files). JPEG, PNG, GIF, WebP, max 10MB each. Requires auth.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": { "type": "object", "properties": { "files": { "type": "array", "items": { "type": "string", "format": "binary" } } }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Array of { id, url, publicId }" }, "400": { "description": "No files or invalid type" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/media/{id}": {
+      "delete": {
+        "tags": ["Media"],
+        "summary": "Delete media",
+        "description": "Delete a media entry by ID. Requires auth.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Deleted" }, "401": { "description": "Unauthorized" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/settings": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "Get settings (admin)",
+        "description": "Full settings. Requires auth.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Settings" }, "401": { "description": "Unauthorized" } }
+      },
+      "put": {
+        "tags": ["Settings"],
+        "summary": "Update settings",
+        "description": "Update default WhatsApp number and message template. Requires auth.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "defaultWhatsappNumber": { "type": "string" },
+                  "whatsappMessageTemplate": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Updated settings" }, "400": { "description": "Validation error" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/settings/public": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "Get public settings",
+        "description": "Default WhatsApp number and message template only. No auth. Used by main site.",
+        "responses": { "200": { "description": "defaultWhatsappNumber, whatsappMessageTemplate" } }
+      }
+    },
+    "/dashboard/stats": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Dashboard statistics",
+        "description": "Counts for products, categories, leads. Requires auth.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Stats object" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/leads": {
+      "post": {
+        "tags": ["Leads"],
+        "summary": "Create lead",
+        "description": "Record an enquiry/click (e.g. product WhatsApp click). Optional productId and metadata. Public.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "productId": { "type": "string" }, "metadata": { "type": "object" } }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Lead created" }, "400": { "description": "Validation error" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token from POST /api/auth/login"
+      }
+    }
+  }
+}
+}

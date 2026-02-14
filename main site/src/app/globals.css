@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+:root {
+  /* Stitch "L'Atelier" - Deep Burgundy/Noir Palette */
+  --bg-deep: #050203; /* Almost black with red tint */
+  --bg-maroon: #1a0508; /* Deep maroon for gradients/cards */
+  --accent-red: #4a0404; /* Rich red accent */
+  --accent-gold: #c5a572; /* Muted luxurious gold */
+
+  --text-main: #ffffff;
+  --text-muted: #9ca3af;
+
+  /* Semantic Mapping */
+  --background: var(--bg-deep);
+  --foreground: var(--text-main);
+
+  --primary: var(--accent-red);
+  --secondary: var(--bg-maroon);
+  --muted: var(--text-muted);
+  --accent: var(--accent-gold);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-deep: var(--bg-deep);
+  --color-maroon: var(--bg-maroon);
+  --color-red: var(--accent-red);
+  --color-gold: var(--accent-gold);
+
+  --font-serif: var(--font-playfair);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Utilities */
+@layer utilities {
+  .glass-card {
+    background: rgba(26, 5, 8, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(197, 165, 114, 0.1);
+  }
+
+  .text-gradient {
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-image: linear-gradient(to right, #fbf5e6, var(--accent-gold));
+  }
+}

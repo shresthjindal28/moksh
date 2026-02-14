@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  --bg-deep: #050203;
+  --bg-maroon: #1a0508;
+  --accent-red: #4a0404;
+  --accent-gold: #c5a572;
+  --text-main: #ffffff;
+  --text-muted: #9ca3af;
+  --background: var(--bg-deep);
+  --foreground: var(--text-main);
+  --card: var(--bg-maroon);
+  --border: rgba(255, 255, 255, 0.08);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-deep: var(--bg-deep);
+  --color-maroon: var(--bg-maroon);
+  --color-red: var(--accent-red);
+  --color-gold: var(--accent-gold);
+  --color-muted: var(--text-muted);
+  --color-card: var(--card);
+  --color-border: var(--border);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
