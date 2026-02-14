@@ -4,12 +4,26 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { FilterSidebar } from "@/components/product/FilterSidebar";
 import { Button } from "@/components/ui/button";
 import { SlidersHorizontal } from "lucide-react";
-import { getProducts, getPublicSettings, buildWhatsAppLink, fullImageUrl } from "@/lib/api";
+import { getProducts, getPublicSettings, getCategories, buildWhatsAppLink, fullImageUrl } from "@/lib/api";
 
-export default async function ShopPage() {
-    const [productsData, settings] = await Promise.all([
-        getProducts({ isActive: true, limit: 50 }),
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function ShopPage({ searchParams }: { searchParams: SearchParams }) {
+    const params = await searchParams;
+    const categoryId = typeof params.category === "string" ? params.category : undefined;
+    const minPrice = typeof params.minPrice === "string" ? parseFloat(params.minPrice) : undefined;
+    const maxPrice = typeof params.maxPrice === "string" ? parseFloat(params.maxPrice) : undefined;
+
+    const [productsData, settings, categories] = await Promise.all([
+        getProducts({
+            isActive: true,
+            limit: 50,
+            category: categoryId,
+            minPrice: Number.isNaN(minPrice) ? undefined : minPrice,
+            maxPrice: Number.isNaN(maxPrice) ? undefined : maxPrice,
+        }),
         getPublicSettings(),
+        getCategories(),
     ]);
     const products = productsData.items;
 
@@ -27,7 +41,7 @@ export default async function ShopPage() {
             </div>
 
             <div className="container mx-auto px-6 pb-20 flex flex-col md:flex-row gap-8">
-                <FilterSidebar />
+                <FilterSidebar categories={categories} />
 
                 <div className="flex-1">
                     {/* Toolbar */}

@@ -6,6 +6,7 @@ import * as productController from "../controllers/product.controller";
 const router = Router();
 
 router.get("/", productController.listProducts);
+router.get("/latest", productController.getLatestProduct);
 router.get("/:id", productController.getProduct);
 router.post("/", requireAuth, productController.createProductValidation, productController.createProduct);
 router.put(
