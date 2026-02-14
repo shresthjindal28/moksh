@@ -51,7 +51,7 @@ Deploy **backend first**, then point the frontends at its URL.
 
 4. **Connect** your Git provider if asked and choose the repo.
 
-5. **Set secret env vars** in the Render dashboard for `moksh-api`:
+5. **Set secret env vars** in the Render dashboard for `moksh-backend`:
 
    | Variable | Example | Required |
    |----------|---------|----------|
@@ -61,9 +61,9 @@ Deploy **backend first**, then point the frontends at its URL.
    | `CLOUDINARY_API_KEY` | Your Cloudinary key | No |
    | `CLOUDINARY_API_SECRET` | Your Cloudinary secret | No |
 
-6. **Apply** the Blueprint. Render will create the PostgreSQL database and the `moksh-api` web service and run migrations.
+6. **Apply** the Blueprint. Render will create the PostgreSQL database and the `moksh-backend` web service and run migrations.
 
-7. **Note the API URL** (e.g. `https://moksh-api.onrender.com`). Use it in the next steps.
+7. **Note the API URL** (e.g. `https://moksh-backend.onrender.com`). Use it in the next steps.
 
 ---
 
@@ -74,7 +74,7 @@ Deploy **backend first**, then point the frontends at its URL.
 3. Set **Root Directory** to `main site`.
 4. **Environment variable** (Production and Preview):
 
-   - `NEXT_PUBLIC_API_URL` = your Render API URL (e.g. `https://moksh-api.onrender.com`)
+   - `NEXT_PUBLIC_API_URL` = your Render API URL (e.g. `https://moksh-backend.onrender.com`)
 
 5. Deploy. After deploy, add this main site URL to the backend’s `CORS_ORIGINS` on Render (e.g. `https://your-project.vercel.app`).
 
@@ -86,7 +86,7 @@ Deploy **backend first**, then point the frontends at its URL.
 2. Set **Root Directory** to `admin`.
 3. **Environment variable**:
 
-   - `NEXT_PUBLIC_API_URL` = same Render API URL (e.g. `https://moksh-api.onrender.com`)
+   - `NEXT_PUBLIC_API_URL` = same Render API URL (e.g. `https://moksh-backend.onrender.com`)
 
 4. Deploy. Add the admin URL to `CORS_ORIGINS` on Render as well.
 
@@ -96,7 +96,7 @@ Deploy **backend first**, then point the frontends at its URL.
 
 - [ ] Repo created and code (including `render.yaml`) pushed.
 - [ ] Render Blueprint applied; `JWT_SECRET` and `CORS_ORIGINS` set.
-- [ ] Backend URL noted (e.g. `https://moksh-api.onrender.com`).
+- [ ] Backend URL noted (e.g. `https://moksh-backend.onrender.com`).
 - [ ] Main site on Vercel with `NEXT_PUBLIC_API_URL` = backend URL; root = `main site`.
 - [ ] Admin on Vercel with `NEXT_PUBLIC_API_URL` = backend URL; root = `admin`.
 - [ ] Both frontend URLs added to backend `CORS_ORIGINS` on Render.
@@ -106,4 +106,7 @@ Deploy **backend first**, then point the frontends at its URL.
 ## After first deploy
 
 - **Seed admin user** (if you use a seed script): run it locally once with `DATABASE_URL` set to the **Render** Postgres URL (from the Render dashboard → moksh-db → Connection string), or add a one-off job in Render.
+- **Seed the 3 default categories** (Kurti, Bedsheet, Jewellery): from the `backend` folder run  
+  `DATABASE_URL="postgres://..." npm run seed:categories`  
+  using the **Render** Postgres connection string (same as above). Safe to run multiple times (upserts by slug).
 - **Free tier**: Render free tier may spin down after inactivity; the first request can be slow until it wakes up.
