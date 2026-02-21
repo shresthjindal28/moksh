@@ -14,8 +14,21 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://mokshwear.shop"),
   title: "MOKSH | Refined Luxury",
   description: "Curated luxury for the discerning few.",
+  openGraph: {
+    title: "MOKSH | Refined Luxury",
+    description: "Curated luxury for the discerning few.",
+    url: "https://mokshwear.shop",
+    siteName: "Mokshwear",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MOKSH | Refined Luxury",
+    description: "Curated luxury for the discerning few.",
+  },
 };
 
 export default function RootLayout({
