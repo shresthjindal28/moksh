@@ -41,9 +41,13 @@ export async function getProducts(params?: {
     if (params?.category) search.set("category", params.category);
     if (params?.page) search.set("page", String(params.page));
     if (params?.limit) search.set("limit", String(params.limit ?? 20));
-    if (params?.minPrice != null) search.set("minPrice", String(params.minPrice));
-    if (params?.maxPrice != null) search.set("maxPrice", String(params.maxPrice));
-    const res = await fetch(`${BASE}/products?${search}`, { cache: "no-store" });
+    if (params?.minPrice != null)
+      search.set("minPrice", String(params.minPrice));
+    if (params?.maxPrice != null)
+      search.set("maxPrice", String(params.maxPrice));
+    const res = await fetch(`${BASE}/products?${search}`, {
+      cache: "no-store",
+    });
     if (!res.ok) return { items: [], total: 0 };
     const json = await res.json();
     return json.data;
@@ -65,7 +69,9 @@ export async function getLatestProduct(): Promise<ProductListItem | null> {
 }
 
 /** Fetches the N latest (most recently created) active products — e.g. for Trending Artifacts. Returns [] if backend is down or errors. */
-export async function getLatestProducts(limit: number = 4): Promise<ProductListItem[]> {
+export async function getLatestProducts(
+  limit: number = 4,
+): Promise<ProductListItem[]> {
   try {
     const data = await getProducts({ limit, page: 1, isActive: true });
     return data.items ?? [];
@@ -99,11 +105,18 @@ export async function getCategories(): Promise<Category[]> {
 export async function getPublicSettings(): Promise<PublicSettings> {
   try {
     const res = await fetch(`${BASE}/settings/public`, { cache: "no-store" });
-    if (!res.ok) return { defaultWhatsappNumber: "", whatsappMessageTemplate: "Hi, I'm interested in {productName}" };
+    if (!res.ok)
+      return {
+        defaultWhatsappNumber: "",
+        whatsappMessageTemplate: "Hi, I'm interested in {productName}",
+      };
     const json = await res.json();
     return json.data;
   } catch {
-    return { defaultWhatsappNumber: "", whatsappMessageTemplate: "Hi, I'm interested in {productName}" };
+    return {
+      defaultWhatsappNumber: "",
+      whatsappMessageTemplate: "Hi, I'm interested in {productName}",
+    };
   }
 }
 
@@ -111,16 +124,24 @@ export function buildWhatsAppLink(
   productName: string,
   settings: PublicSettings,
   productWhatsappNumber?: string,
-  productImageUrl?: string
+  productImageUrl?: string,
 ): string {
-  const num = (productWhatsappNumber || settings.defaultWhatsappNumber || "").replace(/\D/g, "");
-  const template = settings.whatsappMessageTemplate || "Hi, I'm interested in {productName}";
+  // Use the explicit number requested by the user, stripped of non-digits
+  const targetNumber = "+91 79030 91857".replace(/\D/g, "");
+
+  const template =
+    settings.whatsappMessageTemplate || "Hi, I'm interested in {productName}";
   let message = template.replace(/{productName}/g, productName);
+
   if (productImageUrl) {
-    message += `\n\n${productImageUrl}`;
+    message += `\n\nImage: ${productImageUrl}`;
   }
+
+  // Add the link to the website in the message
+  message += `\n\nLink: https://app.mokshwear.shop`;
+
   const text = encodeURIComponent(message);
-  return `https://wa.me/${num || "0"}?text=${text}`;
+  return `https://wa.me/${targetNumber}?text=${text}`;
 }
 
 export function fullImageUrl(url: string): string {
